@@ -1,0 +1,74 @@
+name: Supabase daily backup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # каждый день в 03:00 UTC
+  workflow_dispatch:        # можно запустить вручную в любой момент
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Export google_places from Supabase
+        run: |
+          curl -s \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            "https://nytdhsfeqotlxckmnrcb.supabase.co/rest/v1/google_places?select=*&order=title.asc" \
+            -o data/google_places.json
+
+      - name: Convert JSON to SQL dump
+        run: |
+          python3 - <<'EOF'
+          import json, os
+
+          def esc(s):
+              if s is None: return 'NULL'
+              return "'" + str(s).replace("'", "''") + "'"
+
+          def val(v):
+              if v is None: return 'NULL'
+              if isinstance(v, bool): return 'true' if v else 'false'
+              return esc(str(v))
+
+          with open('data/google_places.json') as f:
+              rows = json.load(f)
+
+          if not rows:
+              print("No rows")
+              exit()
+
+          cols = list(rows[0].keys())
+          lines = []
+          lines.append('-- Dump: google_places')
+          lines.append(f'-- Rows: {len(rows)}')
+          lines.append(f'-- Generated: $(date -u)')
+          lines.append('')
+          lines.append('truncate table public.google_places restart identity cascade;')
+          lines.append('')
+          lines.append('insert into public.google_places (' + ', '.join(cols) + ') values')
+
+          vals = []
+          for r in rows:
+              vals.append('  (' + ', '.join(val(r[c]) for c in cols) + ')')
+          lines.append(',\n'.join(vals) + ';')
+
+          os.makedirs('data', exist_ok=True)
+          with open('data/google_places_dump.sql', 'w') as f:
+              f.write('\n'.join(lines))
+
+          print(f"Exported {len(rows)} rows")
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "backup: google_places $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push

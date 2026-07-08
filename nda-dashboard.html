@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NDA Corp — Parser Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0e1a;color:#fff;font-family:system-ui,-apple-system,sans-serif;font-size:13px}
+input,select,button{font-family:inherit;font-size:13px}
+input::placeholder{color:rgba(255,255,255,0.3)}
+a{text-decoration:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,0.04)}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:4px}
+.header{background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.08);padding:14px 24px;display:flex;align-items:center;gap:12;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;display:inline-block}
+.wrap{padding:20px 24px;max-width:1400px;margin:0 auto}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px}
+.label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px}
+.inp{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:10px 13px;color:#fff;outline:none;transition:border-color .2s}
+.inp:focus{border-color:rgba(59,130,246,0.6)}
+.btn-primary{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;white-space:nowrap}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-sec{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;color:rgba(255,255,255,0.7);cursor:pointer}
+.btn-sec:hover{background:rgba(255,255,255,0.1)}
+.status-bar{margin-top:12px;padding:9px 14px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:8px;font-size:12px;color:#93c5fd;display:none}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin:18px 0}
+.stat{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px}
+.stat-n{font-size:22px;font-weight:800}
+.stat-l{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.tbl-wrap{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{background:rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.08)}
+th{padding:9px 10px;text-align:left;font-size:10px;font-weight:600;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+tbody tr{border-bottom:1px solid rgba(255,255,255,0.05);transition:background .1s;cursor:pointer}
+tbody tr:hover{background:rgba(255,255,255,0.04)}
+tbody tr.selected{background:rgba(59,130,246,0.07)}
+tbody tr.alt{background:rgba(255,255,255,0.015)}
+td{padding:8px 10px;vertical-align:middle}
+.logo-img{width:36px;height:36px;border-radius:8px;object-fit:cover;display:block}
+.logo-ph{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:16px}
+.title-cell{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.sub-cell{font-size:10px;color:rgba(255,255,255,0.4);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.text-muted{color:rgba(255,255,255,0.5)}
+.text-dim{color:rgba(255,255,255,0.35)}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;border:none;cursor:pointer}
+.detail-row td{padding:16px 20px;background:rgba(59,130,246,0.05);border-bottom:1px solid rgba(255,255,255,0.06)}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px}
+.detail-cell{background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px}
+.hours-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:4px;margin-top:6px}
+.pg-row{padding:10px 16px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:5px;align-items:center;justify-content:center}
+.pg-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:4px 10px;color:#fff;cursor:pointer;font-size:12px}
+.pg-btn.active{background:#3b82f6;font-weight:700}
+.pg-btn:disabled{opacity:.4;cursor:not-allowed}
+.empty{text-align:center;padding:48px;color:rgba(255,255,255,0.3)}
+.section-tag{font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr 90px 80px auto;gap:10px;align-items:end}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr 1fr;}.form-grid>:last-child{grid-column:span 2}}
+</style>
+</head>
+<body>
+
+<div class="header" style="gap:12px">
+  <span class="dot"></span>
+  <span style="font-weight:700;font-size:15px">NDA Corp — Parser Dashboard</span>
+  <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,0.4)" id="total-count">загружаем...</span>
+</div>
+
+<div class="wrap">
+
+  <!-- SEARCH FORM -->
+  <div class="card" style="margin-bottom:18px">
+    <div class="section-tag">🔍 Новый поиск — запускает Apify и сохраняет в базу</div>
+    <div class="form-grid">
+      <div>
+        <label class="label">Тип бизнеса</label>
+        <input class="inp" id="q" placeholder="accountant, dentist, gym..." />
+      </div>
+      <div>
+        <label class="label">Город</label>
+        <input class="inp" id="city" placeholder="San Diego, Los Angeles..." />
+      </div>
+      <div>
+        <label class="label">Страна</label>
+        <input class="inp" id="country" value="US" />
+      </div>
+      <div>
+        <label class="label">Лимит</label>
+        <input class="inp" id="limit" type="number" value="100" min="10" max="500" />
+      </div>
+      <div>
+        <button class="btn-primary" id="search-btn" onclick="startSearch()">🚀 Запустить</button>
+      </div>
+    </div>
+    <div class="status-bar" id="status-bar"></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row" id="stats-row">
+    <div class="stat"><div class="stat-n" style="color:#60a5fa" id="st-total">—</div><div class="stat-l">Всего записей</div></div>
+    <div class="stat"><div class="stat-n" style="color:#a78bfa" id="st-cities">—</div><div class="stat-l">Городов</div></div>
+    <div class="stat"><div class="stat-n" style="color:#34d399" id="st-cats">—</div><div class="stat-l">Категорий</div></div>
+    <div class="stat"><div class="stat-n" style="color:#3b82f6" id="st-new">—</div><div class="stat-l">Не звонили</div></div>
+    <div class="stat"><div class="stat-n" style="color:#f59e0b" id="st-int">—</div><div class="stat-l">Интересно</div></div>
+    <div class="stat"><div class="stat-n" style="color:#22c55e" id="st-cli">—</div><div class="stat-l">Клиентов</div></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <input class="inp" id="fq" placeholder="🔍 Поиск по названию, телефону..." style="flex:1;min-width:160px" oninput="renderTable()" />
+    <select class="inp" id="fcity" style="width:auto" onchange="renderTable()"><option value="">Все города</option></select>
+    <select class="inp" id="fcat" style="width:auto" onchange="renderTable()"><option value="">Все категории</option></select>
+    <select class="inp" id="fst" style="width:auto" onchange="renderTable()">
+      <option value="">Все статусы</option>
+      <option>не звонили</option><option>не дозвонились</option><option>отказ</option>
+      <option>перезвонить</option><option>интересно</option><option>клиент</option>
+    </select>
+    <button class="btn-sec" onclick="clearFilters()">Сбросить</button>
+    <span style="font-size:11px;color:rgba(255,255,255,0.4);margin-left:auto" id="filtered-count"></span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="tbl-wrap">
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:44px"></th>
+            <th style="min-width:160px">Название</th>
+            <th style="width:130px">Телефон</th>
+            <th style="width:140px">Категория</th>
+            <th style="width:160px">Адрес / Город</th>
+            <th style="width:100px">Рейтинг</th>
+            <th style="width:140px">Статус</th>
+            <th style="width:100px">Запрос</th>
+            <th style="width:90px">Ссылки</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pg-row" id="pg-row"></div>
+  </div>
+
+</div>
+
+<script>
+const SUPA = 'https://nytdhsfeqotlxckmnrcb.supabase.co';
+const KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55dGRoc2ZlcW90bHhja21ucmNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTUxNDUsImV4cCI6MjA5ODI5MTE0NX0.pp-nEmlJcTn3el6u7mKP_JT5U_P2mNznV42XdtRMkvM';
+const H    = {apikey:KEY,'Authorization':'Bearer '+KEY};
+const EDGE = SUPA+'/functions/v1/apify-search';
+const APIFY_TOKEN = 'apify_api_jwQndUhu7YI6saACUwvrzhQVeXnD8Y0swTCV';
+
+const SS = {
+  'не звонили':    {bg:'#E6F1FB',c:'#0C447C'},
+  'не дозвонились':{bg:'#FCEBEB',c:'#791F1F'},
+  'отказ':         {bg:'#FCEBEB',c:'#A32D2D'},
+  'перезвонить':   {bg:'#FAEEDA',c:'#633806'},
+  'интересно':     {bg:'#EAF3DE',c:'#3B6D11'},
+  'клиент':        {bg:'#E1F5EE',c:'#085041'},
+};
+const STATUSES = Object.keys(SS);
+
+let businesses = [], filtered = [], page = 0, selectedId = null, pollTimer = null;
+const PER = 25;
+
+async function load(){
+  try{
+    const r = await fetch(`${SUPA}/rest/v1/businesses?select=*&order=created_at.desc&limit=1000`,{headers:H});
+    businesses = await r.json() || [];
+  }catch(e){ businesses=[]; }
+  updateSelects(); updateStats(); renderTable();
+  document.getElementById('total-count').textContent = businesses.length + ' записей в базе';
+}
+
+function updateSelects(){
+  const cities = [...new Set(businesses.map(b=>b.city).filter(Boolean))].sort();
+  const cats   = [...new Set(businesses.map(b=>b.category_name).filter(Boolean))].sort();
+  const fcity  = document.getElementById('fcity');
+  const fcat   = document.getElementById('fcat');
+  const cv = fcity.value, catv = fcat.value;
+  fcity.innerHTML = '<option value="">Все города</option>' + cities.map(c=>`<option${c===cv?' selected':''}>${c}</option>`).join('');
+  fcat.innerHTML  = '<option value="">Все категории</option>' + cats.map(c=>`<option${c===catv?' selected':''}>${c}</option>`).join('');
+}
+
+function updateStats(){
+  const cities = new Set(businesses.map(b=>b.city).filter(Boolean));
+  const cats   = new Set(businesses.map(b=>b.category_name).filter(Boolean));
+  document.getElementById('st-total').textContent = businesses.length;
+  document.getElementById('st-cities').textContent = cities.size;
+  document.getElementById('st-cats').textContent = cats.size;
+  document.getElementById('st-new').textContent = businesses.filter(b=>!b.call_status||b.call_status==='не звонили').length;
+  document.getElementById('st-int').textContent = businesses.filter(b=>b.call_status==='интересно').length;
+  document.getElementById('st-cli').textContent = businesses.filter(b=>b.call_status==='клиент').length;
+}
+
+function getFiltered(){
+  const fq = document.getElementById('fq').value.toLowerCase();
+  const fc = document.getElementById('fcity').value;
+  const ft = document.getElementById('fcat').value;
+  const fs = document.getElementById('fst').value;
+  return businesses.filter(b=>{
+    if(fq && !(b.title||'').toLowerCase().includes(fq) && !(b.phone||'').includes(fq) && !(b.search_query||'').toLowerCase().includes(fq)) return false;
+    if(fc && (b.city||'') !== fc) return false;
+    if(ft && (b.category_name||'') !== ft) return false;
+    if(fs && (b.call_status||'не звонили') !== fs) return false;
+    return true;
+  });
+}
+
+function renderTable(){
+  filtered = getFiltered();
+  const totalPages = Math.ceil(filtered.length / PER);
+  if(page >= totalPages) page = 0;
+  const paged = filtered.slice(page*PER, (page+1)*PER);
+  document.getElementById('filtered-count').textContent = `${filtered.length} из ${businesses.length}`;
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  if(!paged.length){
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">Нет данных — запустите поиск выше</td></tr>`;
+  } else {
+    paged.forEach((b,ri)=>{
+      const ss = SS[b.call_status] || SS['не звонили'];
+      const isSelected = b.id === selectedId;
+      const tr = document.createElement('tr');
+      if(isSelected) tr.classList.add('selected');
+      if(ri%2!==0) tr.classList.add('alt');
+      tr.style.cursor='pointer';
+
+      // Logo
+      const tdLogo = document.createElement('td');
+      if(b.image_url){
+        const img = document.createElement('img');
+        img.className='logo-img'; img.src=b.image_url;
+        img.onerror=()=>{img.replaceWith(createPH())};
+        tdLogo.appendChild(img);
+      } else { tdLogo.appendChild(createPH()); }
+      tr.appendChild(tdLogo);
+
+      // Title
+      const tdTitle = document.createElement('td');
+      tdTitle.innerHTML = `<div class="title-cell">${esc(b.title||'—')}</div>${b.subtitle?`<div class="sub-cell">${esc(b.subtitle)}</div>`:''}`;
+      tr.appendChild(tdTitle);
+
+      // Phone
+      const tdPhone = document.createElement('td');
+      if(b.phone) tdPhone.innerHTML = `<a href="tel:${b.phone_unformatted||b.phone}" style="color:#60a5fa" onclick="event.stopPropagation()">${esc(b.phone)}</a>`;
+      else tdPhone.textContent='—';
+      tr.appendChild(tdPhone);
+
+      // Category
+      const tdCat = document.createElement('td');
+      tdCat.textContent = b.category_name||'—';
+      tdCat.style.color='rgba(255,255,255,0.55)';
+      tdCat.style.maxWidth='140px'; tdCat.style.overflow='hidden'; tdCat.style.textOverflow='ellipsis'; tdCat.style.whiteSpace='nowrap';
+      tr.appendChild(tdCat);
+
+      // Address
+      const tdAddr = document.createElement('td');
+      tdAddr.textContent = (b.city?b.city+': ':'') + (b.address?b.address.split(',')[0]:'—');
+      tdAddr.style.color='rgba(255,255,255,0.5)';
+      tdAddr.style.maxWidth='160px'; tdAddr.style.overflow='hidden'; tdAddr.style.textOverflow='ellipsis'; tdAddr.style.whiteSpace='nowrap';
+      tr.appendChild(tdAddr);
+
+      // Rating
+      const tdRate = document.createElement('td');
+      tdRate.innerHTML = b.total_score ? `<span style="color:#f59e0b">★ ${b.total_score}</span><span style="color:rgba(255,255,255,0.3);font-size:10px"> (${b.reviews_count||0})</span>` : '—';
+      tr.appendChild(tdRate);
+
+      // Status
+      const tdSt = document.createElement('td');
+      const stSel = document.createElement('select');
+      stSel.className='badge';
+      stSel.style.background=ss.bg; stSel.style.color=ss.c;
+      stSel.innerHTML = STATUSES.map(s=>`<option${s===(b.call_status||'не звонили')?' selected':''}>${s}</option>`).join('');
+      stSel.addEventListener('change',e=>{e.stopPropagation();updateStatus(b.id,e.target.value);});
+      stSel.addEventListener('click',e=>e.stopPropagation());
+      tdSt.appendChild(stSel); tr.appendChild(tdSt);
+
+      // Query
+      const tdQ = document.createElement('td');
+      tdQ.textContent = b.search_query||'—';
+      tdQ.style.color='rgba(255,255,255,0.4)'; tdQ.style.fontSize='11px';
+      tr.appendChild(tdQ);
+
+      // Links
+      const tdLinks = document.createElement('td');
+      let links='';
+      if(b.url) links+=`<a href="${b.url}" target="_blank" style="color:#3b82f6;font-size:11px;margin-right:6px" onclick="event.stopPropagation()">Maps↗</a>`;
+      if(b.website) links+=`<a href="${b.website}" target="_blank" style="color:#22c55e;font-size:11px" onclick="event.stopPropagation()">Site↗</a>`;
+      tdLinks.innerHTML = links||'—';
+      tr.appendChild(tdLinks);
+
+      tr.addEventListener('click',()=>{
+        selectedId = isSelected ? null : b.id;
+        renderTable();
+      });
+      tbody.appendChild(tr);
+
+      // DETAIL ROW
+      if(isSelected){
+        const dtr = document.createElement('tr');
+        const dtd = document.createElement('td');
+        dtd.className='detail-row'; dtd.setAttribute('colspan','9'); dtd.style.cursor='default';
+        dtd.addEventListener('click',e=>e.stopPropagation());
+
+        let detailHTML = `<div class="detail-grid">`;
+        const fields = [
+          ['📞 Телефон', b.phone_unformatted||b.phone, `tel:${b.phone_unformatted||b.phone}`],
+          ['📍 Адрес', b.address],
+          ['🏙️ Город', `${b.city||''}${b.state?', '+b.state:''} ${b.postal_code||''}`],
+          ['🌍 Страна', b.country_code],
+          ['⭐ Рейтинг', b.total_score?`${b.total_score} · ${b.reviews_count||0} отзывов`:'—'],
+          ['📸 Фото', b.images_count?`${b.images_count} фото`:'нет'],
+          ['🔍 Запрос', `${b.search_query||''}${b.search_city?' / '+b.search_city:''}`],
+          ['📅 Спарсено', b.scraped_at?new Date(b.scraped_at).toLocaleString('ru'):'—'],
+          ['🌐 Сайт', b.website||'нет сайта', b.website],
+          ['📌 Google Maps', b.url?'Открыть ↗':'—', b.url],
+        ];
+        fields.forEach(([l,v,link])=>{
+          detailHTML+=`<div class="detail-cell"><div class="label">${l}</div>`;
+          if(link&&v&&v!=='—') detailHTML+=`<a href="${link}" target="_blank" style="color:#60a5fa;font-size:12px">${esc(v)}</a>`;
+          else detailHTML+=`<div style="font-size:12px;color:rgba(255,255,255,0.8)">${esc(v||'—')}</div>`;
+          detailHTML+=`</div>`;
+        });
+        detailHTML+=`</div>`;
+
+        if(b.opening_hours){
+          try{
+            const hrs = typeof b.opening_hours==='string'?JSON.parse(b.opening_hours):b.opening_hours;
+            detailHTML+=`<div class="detail-cell" style="margin-top:10px"><div class="label">🕐 Часы работы</div><div class="hours-grid">`;
+            hrs.forEach(h=>{ detailHTML+=`<div style="font-size:11px;color:rgba(255,255,255,0.7)"><span style="color:rgba(255,255,255,0.4);margin-right:5px">${h.day}:</span>${h.hours}</div>`; });
+            detailHTML+=`</div></div>`;
+          }catch{}
+        }
+
+        if(b.description) detailHTML+=`<div class="detail-cell" style="margin-top:10px"><div class="label">📝 Описание</div><div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.6">${esc(b.description)}</div></div>`;
+
+        dtd.innerHTML=detailHTML; dtr.appendChild(dtd); tbody.appendChild(dtr);
+      }
+    });
+  }
+
+  // Pagination
+  const pgRow = document.getElementById('pg-row');
+  pgRow.innerHTML='';
+  const totalPages2 = Math.ceil(filtered.length/PER);
+  if(totalPages2>1){
+    pgRow.style.display='flex';
+    const prev=document.createElement('button'); prev.className='pg-btn'; prev.textContent='←'; prev.disabled=page===0;
+    prev.onclick=()=>{page--;renderTable();}; pgRow.appendChild(prev);
+    const start=Math.max(0,Math.min(page-2,totalPages2-5));
+    for(let i=start;i<Math.min(start+5,totalPages2);i++){
+      const btn=document.createElement('button'); btn.className='pg-btn'+(i===page?' active':''); btn.textContent=i+1;
+      btn.onclick=(()=>{const p=i;return()=>{page=p;renderTable();};})(); pgRow.appendChild(btn);
+    }
+    const next=document.createElement('button'); next.className='pg-btn'; next.textContent='→'; next.disabled=page===totalPages2-1;
+    next.onclick=()=>{page++;renderTable();}; pgRow.appendChild(next);
+  } else { pgRow.style.display='none'; }
+}
+
+function createPH(){ const d=document.createElement('div'); d.className='logo-ph'; d.textContent='🏢'; return d; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function clearFilters(){ document.getElementById('fq').value=''; document.getElementById('fcity').value=''; document.getElementById('fcat').value=''; document.getElementById('fst').value=''; renderTable(); }
+
+async function updateStatus(id,status){
+  businesses = businesses.map(b=>b.id===id?{...b,call_status:status}:b);
+  updateStats(); renderTable();
+  await fetch(`${SUPA}/rest/v1/businesses?id=eq.${id}`,{
+    method:'PATCH', headers:{...H,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({call_status:status})
+  });
+}
+
+async function startSearch(){
+  const q=document.getElementById('q').value.trim();
+  if(!q) return;
+  const city=document.getElementById('city').value.trim();
+  const country=document.getElementById('country').value.trim();
+  const limit=parseInt(document.getElementById('limit').value)||100;
+  const btn=document.getElementById('search-btn');
+  const bar=document.getElementById('status-bar');
+  btn.disabled=true; btn.textContent='⏳ Поиск...';
+  bar.style.display='block'; bar.textContent='🚀 Запускаем поиск в Apify...';
+  try{
+    const r=await fetch(EDGE,{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({query:q,city,country,limit})});
+    const d=await r.json();
+    if(d.runId){
+      bar.textContent=`⏳ Поиск запущен! ID: ${d.runId.slice(0,8)}... Ждём результатов (2–10 мин)`;
+      pollTimer=setInterval(async()=>{
+        try{
+          const pr=await fetch(`https://api.apify.com/v2/acts/compass~crawler-google-places/runs/${d.runId}?token=${APIFY_TOKEN}`);
+          const pd=await pr.json();
+          const st=pd?.data?.status;
+          const cnt=pd?.data?.stats?.crawledItems||0;
+          if(st==='SUCCEEDED'){
+            clearInterval(pollTimer);
+            bar.textContent='✅ Готово! Загружаем данные...';
+            setTimeout(async()=>{ await load(); btn.disabled=false; btn.textContent='🚀 Запустить'; setTimeout(()=>{bar.style.display='none';},3000); },3000);
+          }else if(st==='FAILED'||st==='ABORTED'){
+            clearInterval(pollTimer); bar.textContent='❌ Ошибка при парсинге';
+            btn.disabled=false; btn.textContent='🚀 Запустить';
+          }else{ bar.textContent=`⏳ ${st} · найдено: ${cnt} записей...`; }
+        }catch{}
+      },6000);
+    }else{ bar.textContent=`❌ ${d.error||'Ошибка запуска'}`; btn.disabled=false; btn.textContent='🚀 Запустить'; }
+  }catch(e){ bar.textContent=`❌ ${e.message}`; btn.disabled=false; btn.textContent='🚀 Запустить'; }
+}
+
+document.getElementById('q').addEventListener('keydown',e=>{ if(e.key==='Enter') startSearch(); });
+load();
+</script>
+</body>
+</html>
